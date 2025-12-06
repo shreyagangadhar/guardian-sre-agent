@@ -23,8 +23,16 @@ def load_config(path="config.yaml"):
         return yaml.safe_load(f)
 
 def main():
+    print("Guardian SRE Agent Starting...", flush=True) # Explicit stdout for logs
     logger.info("Guardian SRE Agent Starting...")
-    config = load_config()
+    
+    try:
+        config = load_config()
+    except Exception as e:
+        logger.error(f"Failed to load config: {e}")
+        print(f"CRITICAL: Failed to load config: {e}", flush=True)
+        return
+
     alert_processor = AlertProcessor()
     remediation_executor = RemediationExecutor()
     history_manager = HistoryManager()
@@ -33,6 +41,17 @@ def main():
     disk_threshold = config.get('DISK_THRESHOLD', 85)
     
     logger.info(f"Monitoring {len(monitored_services)} services.")
+    print(f"Monitoring {len(monitored_services)} services.", flush=True)
+
+    # Write initial status immediately
+    initial_state = {
+        "services": [],
+        "alerts": [{"type": "System", "details": "Agent Initializing..."}],
+        "disk_status": {"status": True, "message": "Checking..."},
+        "last_updated": time.ctime()
+    }
+    with open("status.json", "w") as f:
+        json.dump(initial_state, f)
 
     while True:
         try:
