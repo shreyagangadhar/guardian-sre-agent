@@ -12,5 +12,5 @@ DISK_THRESHOLD: 85
 
 # Remediation scripts
 REMEDIATION_SCRIPTS:
-  ServiceDown: "/Users/shreyagangadhara/Documents/sre_agent/start_service.sh"
+  ServiceDown: "./start_service.sh"
   DiskFull: "/var/tmp/cleanup.sh"  # Placeholder
