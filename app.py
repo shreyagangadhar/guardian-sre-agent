@@ -20,15 +20,26 @@ def index():
 
 @app.route('/api/status')
 def get_status():
-    if os.path.exists(STATUS_FILE):
-        try:
-            with open(STATUS_FILE, 'r') as f:
+    try:
+        # Debugging: Print CWD and file check
+        cwd = os.getcwd()
+        file_path = os.path.join(cwd, 'status.json')
+        print(f"DEBUG: Looking for status.json at {file_path}", flush=True)
+        
+        if os.path.exists('status.json'):
+            with open('status.json', 'r') as f:
                 data = json.load(f)
-                return jsonify(data)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "No status file found. Agent might not be running."}), 404
+            return jsonify(data)
+        else:
+            print("DEBUG: status.json not found!", flush=True)
+            return jsonify({
+                "services": [], 
+                "alerts": [{"type": "System", "details": "Waiting for Agent..."}],
+                "disk_status": {"status": True, "message": "Initializing..."}
+            })
+    except Exception as e:
+        print(f"DEBUG: Error reading status.json: {e}", flush=True)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/logs')
 def get_logs():
