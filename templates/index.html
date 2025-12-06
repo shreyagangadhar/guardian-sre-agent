@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardian SRE Agent</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@500;700&display=swap"
+        rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            /* Palette */
+            --text-primary: #4a4a4a;
+            --text-secondary: #8c8c8c;
+
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-shadow: 0 10px 30px rgba(112, 112, 192, 0.08);
+
+            --pastel-purple: #b39ddb;
+            --pastel-green: #80cbc4;
+            --pastel-red: #ef9a9a;
+            --pastel-blue: #90caf9;
+
+            --success-text: #00695c;
+            --danger-text: #c62828;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            color: var(--text-primary);
+
+            /* Flowing Background */
+            background: linear-gradient(-45deg, #fdfbf7, #e1bee7, #e0f2f1, #fff9c4);
+            background-size: 400% 400%;
+            animation: flowingGradient 15s ease infinite;
+        }
+
+        @keyframes flowingGradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 32px;
+            color: #5c5c8a;
+            margin: 0 0 5px 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid transparent;
+            color: var(--text-secondary);
+            padding: 10px 25px;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 25px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--pastel-purple);
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: var(--pastel-purple);
+            border-color: var(--pastel-purple);
+            box-shadow: 0 4px 15px rgba(179, 157, 219, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        /* Service Rows */
+        .service-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(249, 249, 252, 0.8);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            transition: transform 0.2s;
+        }
+
+        .service-row:hover {
+            transform: translateY(-2px);
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .service-name {
+            font-weight: 800;
+            font-size: 15px;
+            color: #5c5c8a;
+        }
+
+        .service-url {
+            font-size: 12px;
+            color: #9facbd;
+            margin-top: 2px;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-up {
+            background-color: #e0f2f1;
+            color: var(--success-text);
+        }
+
+        .status-down {
+            background-color: #ffebee;
+            color: var(--danger-text);
+        }
+
+        /* Chaos Button */
+        .btn-kill {
+            background: #fff;
+            border: 2px solid var(--pastel-red);
+            color: var(--pastel-red);
+            padding: 4px 12px;
+            margin-left: 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .btn-kill:hover {
+            background: var(--pastel-red);
+            color: #fff;
+        }
+
+        /* Logs & Tables */
+        .log-viewer {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
+            padding: 20px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 13px;
+            color: #666;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px;
+            background: rgba(253, 253, 253, 0.8);
+            border-top: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        tr td:first-child {
+            border-left: 1px solid #f0f0f0;
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        tr td:last-child {
+            border-right: 1px solid #f0f0f0;
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d0d0d0;
+            border-radius: 4px;
+        }
+
+        /* History Bars */
+        .history-bar {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .history-block {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #eee;
+        }
+
+        .block-up {
+            background-color: var(--pastel-green);
+        }
+
+        .block-down {
+            background-color: var(--pastel-red);
+        }
+
+        /* Metrics Canvas */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Guardian SRE Agent</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('metrics')">Metrics</button>
+            <button class="tab-btn" onclick="switchTab('logs')">Logs</button>
+            <button class="tab-btn" onclick="switchTab('history')">History</button>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="dashboard" class="tab-content active">
+            <div class="grid">
+                <!-- Services -->
+                <div class="card">
+                    <h3>Monitored Services</h3>
+                    <div id="services-list">
+                        <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                            Scanning...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Systems -->
+                <div class="card">
+                    <h3>System Health</h3>
+                    <div class="service-row">
+                        <div>
+                            <div class="service-name">Disk Space</div>
+                            <div class="service-url">/dev/disk1s1</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span id="disk-status" class="status-badge">...</span>
+                            <div id="disk-message"
+                                style="font-size: 12px; margin-top: 5px; color: var(--text-secondary);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="card">
+                <h3>Active Alerts</h3>
+                <div id="alerts-list">
+                    <div
+                        style="padding: 15px; background: rgba(224, 242, 241, 0.5); border-radius: 12px; color: var(--success-text); font-weight: 600;">
+                        System Normal
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- METRICS TAB -->
+        <div id="metrics" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h3>CPU Usage (%)</h3>
+                    <div class="chart-container">
+                        <canvas id="cpuChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Memory Usage (MB)</h3>
+                    <div class="chart-container">
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Service Latency (ms)</h3>
+                    <div class="chart-container">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGS TAB -->
+        <div id="logs" class="tab-content">
+            <div class="card">
+                <h3>System Logs</h3>
+                <div class="log-viewer" id="log-content">
+                    Loading logs...
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="tab-content">
+            <div class="card">
+                <h3>Incident History</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Type</th>
+                            <th>Details</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-list">
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 20px; color: #aaa;">Loading history...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if (tabId === 'logs') scrollToBottom();
+            if (tabId === 'history') updateHistory();
+            if (tabId === 'metrics') updateMetrics();
+        }
+
+        function scrollToBottom() {
+            const el = document.getElementById('log-content');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        const history = {};
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                // Services
+                const servicesHtml = data.services.map(s => {
+                    if (!history[s.name]) history[s.name] = [];
+                    history[s.name].push(s.status === 'UP');
+                    if (history[s.name].length > 15) history[s.name].shift();
+
+                    const historyHtml = history[s.name].map(up =>
+                        `<div class="history-block ${up ? 'block-up' : 'block-down'}"></div>`
+                    ).join('');
+
+                    return `
+                    <div class="service-row">
+                        <div style="flex-grow: 1;">
+                            <div style="display: flex; align-items: center;">
+                                <span class="service-name">${s.name}</span>
+                                <button class="btn-kill" onclick="killService('${s.url}')">Kill</button>
+                            </div>
+                            <div class="service-url">${s.url}</div>
+                            <div class="history-bar">
+                                ${historyHtml}
+                            </div>
+                        </div>
+                        <span class="status-badge ${s.status === 'UP' ? 'status-up' : 'status-down'}">
+                            ${s.status}
+                        </span>
+                    </div>
+                `}).join('');
+                document.getElementById('services-list').innerHTML = servicesHtml;
+
+                // Disk
+                const disk = data.disk_status;
+                const diskBadge = document.getElementById('disk-status');
+                diskBadge.textContent = disk.status ? 'Healthy' : 'Critical';
+                diskBadge.className = `status-badge ${disk.status ? 'status-up' : 'status-down'}`;
+                document.getElementById('disk-message').textContent = disk.message;
+
+                // Alerts
+                if (data.alerts && data.alerts.length > 0) {
+                    const alertsHtml = data.alerts.map(a => `
+                        <div style="padding: 15px; border: 1px solid var(--pastel-red); background: #ffebee; border-radius: 12px; margin-bottom: 10px;">
+                            <strong style="color: var(--danger-text);">${a.type}</strong>
+                            <div style="margin-top: 5px; font-size: 14px; color: var(--text-primary);">${a.details}</div>
+                        </div>
+                    `).join('');
+                    document.getElementById('alerts-list').innerHTML = alertsHtml;
+                } else {
+                    document.getElementById('alerts-list').innerHTML = '<div style="padding: 15px; background: rgba(224, 242, 241, 0.5); border-radius: 12px; color: var(--success-text); font-weight: 600;">System Normal</div>';
+                }
+
+            } catch (e) {
+                console.error('Error fetching status:', e);
+            }
+        }
+
+        async function killService(url) {
+            if (!confirm("Confirm kill service?")) return;
+            try {
+                await fetch('/api/chaos/kill', { method: 'POST' });
+            } catch (e) {
+                alert("Error: " + e);
+            }
+        }
+
+        async function updateLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+
+                if (data.logs) {
+                    const logContent = data.logs.join('');
+                    const viewer = document.getElementById('log-content');
+                    const wasAtBottom = viewer.scrollHeight - viewer.scrollTop <= viewer.clientHeight + 50;
+
+                    viewer.textContent = logContent;
+
+                    if (wasAtBottom) scrollToBottom();
+                }
+            } catch (e) {
+                console.error('Error fetching logs:', e);
+            }
+        }
+
+        async function updateHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    document.getElementById('history-list').innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #aaa;">No history available.</td></tr>';
+                    return;
+                }
+
+                const rows = data.map(item => {
+                    let typeBadge = '';
+                    if (item.type === 'alert') typeBadge = '<span style="color: var(--danger-text); font-weight: 800; background: #ffebee; padding: 4px 10px; border-radius: 10px; font-size: 12px;">ALERT</span>';
+                    else if (item.type === 'remediation') typeBadge = '<span style="color: var(--success-text); font-weight: 800; background: #e0f2f1; padding: 4px 10px; border-radius: 10px; font-size: 12px;">FIX</span>';
+
+                    return `
+                        <tr>
+                            <td style="color: #666;">${item.timestamp}</td>
+                            <td>${typeBadge}</td>
+                            <td style="color: #444;">${item.details}</td>
+                            <td style="color: #666; font-weight: 600;">${item.status}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('history-list').innerHTML = rows;
+            } catch (e) {
+                console.error('Error fetching history:', e);
+            }
+        }
+
+        // --- Metrics w/ Chart.js ---
+        let charts = {};
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
+            },
+            elements: {
+                line: { tension: 0.4 },
+                point: { radius: 0 }
+            }
+        };
+
+        function initCharts() {
+            if (charts.cpu) return; // Already inited
+
+            const ctxCpu = document.getElementById('cpuChart').getContext('2d');
+            charts.cpu = new Chart(ctxCpu, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU %',
+                        data: [],
+                        borderColor: '#b39ddb',
+                        backgroundColor: 'rgba(179, 157, 219, 0.2)',
+                        fill: true,
+                        borderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const ctxMem = document.getElementById('memoryChart').getContext('2d');
+            charts.memory = new Chart(ctxMem, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Memory (MB)',
+                        data: [],
+                        borderColor: '#80cbc4',
+                        backgroundColor: 'rgba(128, 203, 196, 0.2)',
+                        fill: true,
+                        borderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const ctxLat = document.getElementById('latencyChart').getContext('2d');
+            charts.latency = new Chart(ctxLat, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Latency (ms)',
+                        data: [],
+                        borderColor: '#ef9a9a',
+                        backgroundColor: 'rgba(239, 154, 154, 0.2)',
+                        fill: true,
+                        borderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+        }
+
+        async function updateMetrics() {
+            initCharts();
+            try {
+                const response = await fetch('/api/metrics');
+                const data = await response.json();
+
+                // Update charts
+                charts.cpu.data.labels = data.labels;
+                charts.cpu.data.datasets[0].data = data.cpu;
+                charts.cpu.update('none'); // 'none' for performance
+
+                charts.memory.data.labels = data.labels;
+                charts.memory.data.datasets[0].data = data.memory;
+                charts.memory.update('none');
+
+                charts.latency.data.labels = data.labels;
+                charts.latency.data.datasets[0].data = data.latency;
+                charts.latency.update('none');
+
+            } catch (e) {
+                console.error("Metrics error:", e);
+            }
+        }
+
+        setInterval(updateStatus, 2000);
+        setInterval(updateLogs, 2000);
+        setInterval(updateHistory, 5000);
+        setInterval(() => {
+            if (document.getElementById('metrics').classList.contains('active')) {
+                updateMetrics();
+            }
+        }, 2000);
+
+        updateStatus();
+        updateLogs();
+    </script>
+</body>
+
+</html>

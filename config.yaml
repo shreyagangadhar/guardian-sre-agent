@@ -1,0 +1,16 @@
+
+# SRE Agent Configuration
+
+# List of services to monitor
+MONITORED_SERVICES:
+  - name: "Local Health Service"
+    url: "http://localhost:8080/health"
+    check_interval: 10  # check every 10 seconds
+
+# Disk usage threshold (percentage)
+DISK_THRESHOLD: 85
+
+# Remediation scripts
+REMEDIATION_SCRIPTS:
+  ServiceDown: "/Users/shreyagangadhara/Documents/sre_agent/start_service.sh"
+  DiskFull: "/var/tmp/cleanup.sh"  # Placeholder
