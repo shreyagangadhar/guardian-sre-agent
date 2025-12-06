@@ -1,1 +1,1 @@
-web: gunicorn dashboard:app
+web: ./render_build.sh
